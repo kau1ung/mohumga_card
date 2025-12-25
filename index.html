@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>모험가 카드 생성기</title>
+    <title>모험가 카드 생성기 Pro (Compact)</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -20,32 +20,31 @@
         input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
         .btn-small { padding: 5px 10px; font-size: 0.75rem; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px; }
 
-        .color-picker-box {
-            width: 50px; height: 40px; padding: 0; border: 1px solid var(--border);
-            border-radius: 4px; cursor: pointer; appearance: none; -webkit-appearance: none;
-        }
+        .color-picker-box { width: 50px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; appearance: none; -webkit-appearance: none; }
         .color-picker-box::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-box::-webkit-color-swatch { border: none; border-radius: 4px; }
 
         .preview { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        #profile-card { 
-            width: 420px; max-height: 80vh; background: var(--card-bg); 
-            padding: 35px; border: 1px solid #eee; box-sizing: border-box; 
-            overflow-y: auto;
-        }
+        #profile-card { width: 420px; max-height: 80vh; background: var(--card-bg); padding: 35px; border: 1px solid #eee; box-sizing: border-box; overflow-y: auto; }
 
         #card-photo { width: 100%; aspect-ratio: 1/1; background: #f8f9fa; margin-bottom: 25px; object-fit: cover; display: none; }
         .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
         .tag { background: #f1f3f5; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: #495057; }
 
+        .keyword-tag { border-radius: 4px; padding: 3px 8px; font-size: 0.8rem; margin-right: 4px; margin-bottom: 4px; display: inline-block; }
+        .like-tag { background: #e7f5ff; color: #1971c2; border: 1px solid #a5d8ff; }
+        .dislike-tag { background: #fff5f5; color: #e03131; border: 1px solid #ffc9c9; }
+
         .profile-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
         .profile-table tr { display: none; border-bottom: 1px solid #f8f9fa; }
         .profile-table tr.visible { display: table-row; }
-        .profile-table th { width: 90px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 12px 0; }
-        .profile-table td { padding: 12px 0; white-space: pre-wrap; color: #343a40; }
+        .profile-table th { width: 90px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 8px 0; }
+        .profile-table td { padding: 8px 0; white-space: pre-wrap; color: #343a40; vertical-align: top; }
         
-        #out-color-hex { display: block; font-weight: bold; margin-bottom: 2px; }
-        #out-color-desc { display: block; font-size: 0.8rem; color: #666; }
+        .color-display-item { margin-bottom: 4px; }
+        .color-display-item:last-child { margin-bottom: 0; }
+        .color-hex { display: block; font-weight: bold; line-height: 1.2; }
+        .color-desc { display: block; font-size: 0.8rem; color: #666; line-height: 1.2; }
 
         .save-btn { margin-top: 20px; width: 420px; padding: 16px; background: var(--point); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; }
         #crop-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; z-index: 1000; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.2); }
@@ -66,12 +65,32 @@
             <div id="manage-tags"></div>
         </div>
         <div class="input-item">
-            <label>지향색 (색상 및 설명)</label>
-            <div style="display:flex; gap:10px; margin-bottom:5px;"><input type="color" id="in-color-p" class="color-picker-box" oninput="updateColor(this.value, 'p')"><input type="text" id="in-color-h" placeholder="#000000" oninput="updateColor(this.value, 'h')"></div>
-            <input type="text" id="in-color-desc" placeholder="색상 설명" oninput="sync()">
+            <label>지향색</label>
+            <div style="display:flex; gap:10px; margin-bottom:5px;">
+                <input type="color" id="in-color-p" class="color-picker-box" oninput="updatePicker(this.value)">
+                <input type="text" id="in-color-h" placeholder="#000000" oninput="updateHex(this.value)">
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="in-color-desc" placeholder="색상 설명">
+                <button class="btn-small" onclick="addColor()">색상 추가</button>
+            </div>
+            <div id="manage-colors"></div>
         </div>
         <div class="input-item"><label>외모 서술</label><textarea id="in-app" rows="2" oninput="sync()"></textarea></div>
+        
         <div class="input-item"><label>성격 서술</label><textarea id="in-pers" rows="3" oninput="sync()"></textarea></div>
+
+        <div class="input-item">
+            <label>좋아하는 것</label>
+            <div style="display:flex; gap:5px;"><input type="text" id="in-like"><button class="btn-small" onclick="addItem('likes', 'in-like')">추가</button></div>
+            <div id="manage-likes"></div>
+        </div>
+        <div class="input-item">
+            <label>싫어하는 것</label>
+            <div style="display:flex; gap:5px;"><input type="text" id="in-dislike"><button class="btn-small" onclick="addItem('dislikes', 'in-dislike')">추가</button></div>
+            <div id="manage-dislikes"></div>
+        </div>
+
         <div class="input-item"><label>특징</label><textarea id="in-feat" rows="2" oninput="sync()"></textarea></div>
         <div class="input-item">
             <label>관계</label>
@@ -87,9 +106,14 @@
             <table class="profile-table">
                 <tr id="tr-name"><th>이름</th><td id="out-name"></td></tr>
                 <tr id="tr-age"><th>나이</th><td id="out-age"></td></tr>
-                <tr id="tr-color"><th>지향색</th><td><span id="out-color-hex"></span><span id="out-color-desc"></span></td></tr>
+                <tr id="tr-color"><th>지향색</th><td id="out-color"></td></tr>
                 <tr id="tr-app"><th>외모</th><td id="out-app"></td></tr>
+                
                 <tr id="tr-pers"><th>성격</th><td id="out-pers"></td></tr>
+                
+                <tr id="tr-likes"><th>좋아하는 것</th><td id="out-likes"></td></tr>
+                <tr id="tr-dislikes"><th>싫어하는 것</th><td id="out-dislikes"></td></tr>
+                
                 <tr id="tr-feat"><th>특징</th><td id="out-feat"></td></tr>
                 <tr id="tr-rel"><th>관계</th><td id="out-rel"></td></tr>
             </table>
@@ -102,105 +126,70 @@
 
 <script>
     let cropper;
-    let data = { tags: [], relations: [] };
+    let data = { tags: [], colors: [], likes: [], dislikes: [], relations: [] };
 
     function sync() {
-        const mapping = { name:'name', age:'age', app:'app', pers:'pers', feat:'feat', 'color-desc':'color' };
+        const mapping = { name:'name', age:'age', app:'app', pers:'pers', feat:'feat' };
         Object.entries(mapping).forEach(([inputId, rowId]) => {
             const val = document.getElementById(`in-${inputId}`).value;
             const out = document.getElementById(`out-${inputId}`);
             const row = document.getElementById(`tr-${rowId}`);
             if(out) out.innerText = val;
-
-            if(rowId === 'color') {
-                const hexVal = document.getElementById('in-color-h').value;
-                if(val.trim() || hexVal.trim()) row.classList.add('visible');
-                else row.classList.remove('visible');
-            } else if(rowId === 'rel') {
-                if(data.relations.length > 0) row.classList.add('visible');
-                else row.classList.remove('visible');
-            } else {
-                if(val.trim()) row.classList.add('visible');
-                else row.classList.remove('visible');
-            }
+            if(val.trim()) row.classList.add('visible');
+            else row.classList.remove('visible');
+        });
+        ['color', 'likes', 'dislikes', 'rel'].forEach(r => {
+            const row = document.getElementById(`tr-${r}`);
+            const dataKey = r === 'rel' ? 'relations' : (r === 'color' ? 'colors' : r);
+            if(data[dataKey].length > 0) row.classList.add('visible');
+            else row.classList.remove('visible');
         });
     }
 
-    function updateColor(v, t) {
-        if(t === 'p') document.getElementById('in-color-h').value = v;
-        else document.getElementById('in-color-p').value = v;
-        const out = document.getElementById('out-color-hex');
-        out.innerText = v; out.style.color = v;
-        sync();
+    function updatePicker(v) { document.getElementById('in-color-h').value = v; }
+    function updateHex(v) { document.getElementById('in-color-p').value = v; }
+    function addColor() {
+        const hex = document.getElementById('in-color-h').value;
+        const desc = document.getElementById('in-color-desc').value;
+        if(hex) { data.colors.push({ hex, desc }); document.getElementById('in-color-desc').value = ''; renderAll(); }
     }
-
     function addItem(type, inputId) {
         const input = document.getElementById(inputId);
-        if(input.value) {
-            data[type].push(input.value);
-            input.value = ''; renderAll();
-        }
+        if(input.value) { data[type].push(input.value); input.value = ''; renderAll(); }
     }
-
     function addRelation() {
         const n = document.getElementById('in-rel-n');
         const d = document.getElementById('in-rel-d');
-        if(n.value) {
-            data.relations.push({ name: n.value, desc: d.value });
-            n.value = ''; d.value = ''; 
-            renderAll();
-        }
+        if(n.value) { data.relations.push({ name: n.value, desc: d.value }); n.value = ''; d.value = ''; renderAll(); }
     }
-
     function moveItem(type, idx, dir) {
         const arr = data[type];
         if(dir === -1 && idx > 0) [arr[idx], arr[idx-1]] = [arr[idx-1], arr[idx]];
         else if(dir === 1 && idx < arr.length - 1) [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]];
         renderAll();
     }
-
     function delItem(type, idx) { data[type].splice(idx, 1); renderAll(); }
-
-    // 수정 기능 함수
     function editItem(type, idx) {
         const item = data[type][idx];
-        if(type === 'tags') {
-            document.getElementById('in-tag').value = item;
-        } else if(type === 'relations') {
-            document.getElementById('in-rel-n').value = item.name;
-            document.getElementById('in-rel-d').value = item.desc;
-        }
-        delItem(type, idx); // 수정을 위해 기존 항목 삭제(입력창으로 이동)
+        if(type === 'tags') document.getElementById('in-tag').value = item;
+        else if(type === 'colors') { document.getElementById('in-color-h').value = item.hex; document.getElementById('in-color-p').value = item.hex; document.getElementById('in-color-desc').value = item.desc; }
+        else if(type === 'likes') document.getElementById('in-like').value = item;
+        else if(type === 'dislikes') document.getElementById('in-dislike').value = item;
+        else if(type === 'relations') { document.getElementById('in-rel-n').value = item.name; document.getElementById('in-rel-d').value = item.desc; }
+        delItem(type, idx);
     }
-
     function renderAll() {
         document.getElementById('card-tags').innerHTML = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
-        const outRel = document.getElementById('out-rel');
-        outRel.innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
-        
-        const relRow = document.getElementById('tr-rel');
-        if(data.relations.length > 0) relRow.classList.add('visible');
-        else relRow.classList.remove('visible');
-
-        ['tags', 'relations'].forEach(type => {
+        document.getElementById('out-color').innerHTML = data.colors.map(c => `<div class="color-display-item"><span class="color-hex" style="color:${c.hex}">${c.hex}</span><span class="color-desc">${c.desc}</span></div>`).join('');
+        document.getElementById('out-likes').innerHTML = data.likes.map(l => `<span class="keyword-tag like-tag">${l}</span>`).join('');
+        document.getElementById('out-dislikes').innerHTML = data.dislikes.map(d => `<span class="keyword-tag dislike-tag">${d}</span>`).join('');
+        document.getElementById('out-rel').innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
+        ['tags', 'colors', 'likes', 'dislikes', 'relations'].forEach(type => {
             const container = document.getElementById(`manage-${type.toLowerCase()}`);
-            container.innerHTML = data[type].map((item, i) => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
-                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">
-                        ${type === 'relations' ? item.name : item}
-                    </span>
-                    <div style="display:flex; gap:2px;">
-                        <button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button>
-                        <button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button>
-                        <button class="btn-small" onclick="editItem('${type}', ${i})">수정</button>
-                        <button class="btn-small" onclick="delItem('${type}', ${i})">x</button>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = data[type].map((item, i) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">${type === 'relations' ? item.name : (type === 'colors' ? item.hex : item)}</span><div style="display:flex; gap:2px;"><button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button><button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button><button class="btn-small" onclick="editItem('${type}', ${i})">수정</button><button class="btn-small" onclick="delItem('${type}', ${i})">x</button></div></div>`).join('');
         });
         sync();
     }
-
     const imageInput = document.getElementById('image-upload');
     imageInput.onchange = (e) => {
         const file = e.target.files[0];
@@ -223,24 +212,15 @@
         cardImg.style.display = 'block';
         document.getElementById('crop-modal').style.display = 'none';
     }
-
     async function downloadCard() {
         const charName = document.getElementById('in-name').value || 'character';
         const card = document.getElementById('profile-card');
         const originalMaxHeight = card.style.maxHeight;
         const originalOverflow = card.style.overflowY;
-        card.style.maxHeight = 'none';
-        card.style.overflowY = 'visible';
-
+        card.style.maxHeight = 'none'; card.style.overflowY = 'visible';
         const canvas = await html2canvas(card, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
-        
-        card.style.maxHeight = originalMaxHeight;
-        card.style.overflowY = originalOverflow;
-
-        const link = document.createElement('a');
-        link.download = `${charName}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        card.style.maxHeight = originalMaxHeight; card.style.overflowY = originalOverflow;
+        const link = document.createElement('a'); link.download = `${charName}.png`; link.href = canvas.toDataURL('image/png'); link.click();
     }
 </script>
 </body>
