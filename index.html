@@ -20,7 +20,6 @@
         input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
         .btn-small { padding: 5px 10px; font-size: 0.75rem; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px; }
 
-        /* 컬러피커 사각형 */
         .color-picker-box {
             width: 50px; height: 40px; padding: 0; border: 1px solid var(--border);
             border-radius: 4px; cursor: pointer; appearance: none; -webkit-appearance: none;
@@ -57,7 +56,7 @@
 
 <div class="container">
     <div class="editor">
-        <h2>캐릭터 설정</h2>
+        <h2>모험가 설정</h2>
         <div class="input-item"><label>사진 업로드</label><input type="file" id="image-upload" accept="image/*"></div>
         <div class="input-item"><label>이름</label><input type="text" id="in-name" oninput="sync()"></div>
         <div class="input-item"><label>나이</label><input type="text" id="in-age" oninput="sync()"></div>
@@ -162,28 +161,38 @@
 
     function delItem(type, idx) { data[type].splice(idx, 1); renderAll(); }
 
+    // 수정 기능 함수
+    function editItem(type, idx) {
+        const item = data[type][idx];
+        if(type === 'tags') {
+            document.getElementById('in-tag').value = item;
+        } else if(type === 'relations') {
+            document.getElementById('in-rel-n').value = item.name;
+            document.getElementById('in-rel-d').value = item.desc;
+        }
+        delItem(type, idx); // 수정을 위해 기존 항목 삭제(입력창으로 이동)
+    }
+
     function renderAll() {
-        // 카드 태그 업데이트
         document.getElementById('card-tags').innerHTML = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
-        
-        // 카드 관계 업데이트
         const outRel = document.getElementById('out-rel');
         outRel.innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
         
-        // 관계 행 가시성 처리
         const relRow = document.getElementById('tr-rel');
         if(data.relations.length > 0) relRow.classList.add('visible');
         else relRow.classList.remove('visible');
 
-        // 관리 리스트 렌더링
         ['tags', 'relations'].forEach(type => {
             const container = document.getElementById(`manage-${type.toLowerCase()}`);
             container.innerHTML = data[type].map((item, i) => `
-                <div style="display:flex; justify-content:space-between; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
-                    <span>${type === 'relations' ? item.name : item}</span>
-                    <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">
+                        ${type === 'relations' ? item.name : item}
+                    </span>
+                    <div style="display:flex; gap:2px;">
                         <button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button>
                         <button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button>
+                        <button class="btn-small" onclick="editItem('${type}', ${i})">수정</button>
                         <button class="btn-small" onclick="delItem('${type}', ${i})">x</button>
                     </div>
                 </div>
