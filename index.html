@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캐릭터 프로필 생성기 (롤백 버전)</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root { --main-bg: #f8f9fa; --card-bg: #ffffff; --border: #e9ecef; --point: #333; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--main-bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { display: flex; gap: 40px; max-width: 1200px; width: 100%; height: 95vh; }
+        
+        .editor { flex: 1; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow-y: auto; }
+        .input-item { margin-bottom: 20px; border-bottom: 1px solid #f8f9fa; padding-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: #444; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
+        .btn-small { padding: 5px 10px; font-size: 0.75rem; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px; }
+
+        /* 컬러피커 사각형 */
+        .color-picker-box {
+            width: 50px; height: 40px; padding: 0; border: 1px solid var(--border);
+            border-radius: 4px; cursor: pointer; appearance: none; -webkit-appearance: none;
+        }
+        .color-picker-box::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-box::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+        .preview { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+        #profile-card { 
+            width: 420px; max-height: 80vh; background: var(--card-bg); 
+            padding: 35px; border: 1px solid #eee; box-sizing: border-box; 
+            overflow-y: auto;
+        }
+
+        #card-photo { width: 100%; aspect-ratio: 1/1; background: #f8f9fa; margin-bottom: 25px; object-fit: cover; display: none; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .tag { background: #f1f3f5; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: #495057; }
+
+        .profile-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .profile-table tr { display: none; border-bottom: 1px solid #f8f9fa; }
+        .profile-table tr.visible { display: table-row; }
+        .profile-table th { width: 90px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 12px 0; }
+        .profile-table td { padding: 12px 0; white-space: pre-wrap; color: #343a40; }
+        
+        #out-color-hex { display: block; font-weight: bold; margin-bottom: 2px; }
+        #out-color-desc { display: block; font-size: 0.8rem; color: #666; }
+
+        .save-btn { margin-top: 20px; width: 420px; padding: 16px; background: var(--point); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; }
+        #crop-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; z-index: 1000; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.2); }
+        .crop-container { width: 400px; height: 400px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="editor">
+        <h2>캐릭터 설정</h2>
+        <div class="input-item"><label>사진 업로드</label><input type="file" id="image-upload" accept="image/*"></div>
+        <div class="input-item"><label>이름</label><input type="text" id="in-name" oninput="sync()"></div>
+        <div class="input-item"><label>나이</label><input type="text" id="in-age" oninput="sync()"></div>
+        <div class="input-item">
+            <label>대표 키워드</label>
+            <div style="display:flex; gap:5px;"><input type="text" id="in-tag"><button class="btn-small" onclick="addItem('tags', 'in-tag')">추가</button></div>
+            <div id="manage-tags"></div>
+        </div>
+        <div class="input-item">
+            <label>지향색 (색상 및 설명)</label>
+            <div style="display:flex; gap:10px; margin-bottom:5px;"><input type="color" id="in-color-p" class="color-picker-box" oninput="updateColor(this.value, 'p')"><input type="text" id="in-color-h" placeholder="#000000" oninput="updateColor(this.value, 'h')"></div>
+            <input type="text" id="in-color-desc" placeholder="색상 설명" oninput="sync()">
+        </div>
+        <div class="input-item"><label>외모 서술</label><textarea id="in-app" rows="2" oninput="sync()"></textarea></div>
+        <div class="input-item"><label>성격 서술</label><textarea id="in-pers" rows="3" oninput="sync()"></textarea></div>
+        <div class="input-item"><label>특징</label><textarea id="in-feat" rows="2" oninput="sync()"></textarea></div>
+        <div class="input-item">
+            <label>관계</label>
+            <div style="display:flex; flex-direction:column; gap:5px;"><input type="text" id="in-rel-n" placeholder="대상"><textarea id="in-rel-d" placeholder="관계 내용" rows="1"></textarea><button class="btn-small" onclick="addRelation()">관계 추가</button></div>
+            <div id="manage-relations"></div>
+        </div>
+    </div>
+
+    <div class="preview">
+        <div id="profile-card">
+            <img id="card-photo" src="" alt="">
+            <div id="card-tags" class="tag-container"></div>
+            <table class="profile-table">
+                <tr id="tr-name"><th>이름</th><td id="out-name"></td></tr>
+                <tr id="tr-age"><th>나이</th><td id="out-age"></td></tr>
+                <tr id="tr-color"><th>지향색</th><td><span id="out-color-hex"></span><span id="out-color-desc"></span></td></tr>
+                <tr id="tr-app"><th>외모</th><td id="out-app"></td></tr>
+                <tr id="tr-pers"><th>성격</th><td id="out-pers"></td></tr>
+                <tr id="tr-feat"><th>특징</th><td id="out-feat"></td></tr>
+                <tr id="tr-rel"><th>관계</th><td id="out-rel"></td></tr>
+            </table>
+        </div>
+        <button class="save-btn" onclick="downloadCard()">이미지로 저장하기</button>
+    </div>
+</div>
+
+<div id="crop-modal"><div class="crop-container"><img id="crop-image"></div><button onclick="applyCrop()">완료</button></div>
+
+<script>
+    let cropper;
+    let data = { tags: [], relations: [] };
+
+    function sync() {
+        const mapping = { name:'name', age:'age', app:'app', pers:'pers', feat:'feat', 'color-desc':'color' };
+        Object.entries(mapping).forEach(([inputId, rowId]) => {
+            const val = document.getElementById(`in-${inputId}`).value;
+            const out = document.getElementById(`out-${inputId}`);
+            const row = document.getElementById(`tr-${rowId}`);
+            if(out) out.innerText = val;
+
+            if(rowId === 'color') {
+                const hexVal = document.getElementById('in-color-h').value;
+                if(val.trim() || hexVal.trim()) row.classList.add('visible');
+                else row.classList.remove('visible');
+            } else if(rowId === 'rel') {
+                if(data.relations.length > 0) row.classList.add('visible');
+                else row.classList.remove('visible');
+            } else {
+                if(val.trim()) row.classList.add('visible');
+                else row.classList.remove('visible');
+            }
+        });
+    }
+
+    function updateColor(v, t) {
+        if(t === 'p') document.getElementById('in-color-h').value = v;
+        else document.getElementById('in-color-p').value = v;
+        const out = document.getElementById('out-color-hex');
+        out.innerText = v; out.style.color = v;
+        sync();
+    }
+
+    function addItem(type, inputId) {
+        const input = document.getElementById(inputId);
+        if(input.value) {
+            data[type].push(input.value);
+            input.value = ''; renderAll();
+        }
+    }
+
+    function addRelation() {
+        const n = document.getElementById('in-rel-n');
+        const d = document.getElementById('in-rel-d');
+        if(n.value) {
+            data.relations.push({ name: n.value, desc: d.value });
+            n.value = ''; d.value = ''; 
+            renderAll();
+        }
+    }
+
+    function moveItem(type, idx, dir) {
+        const arr = data[type];
+        if(dir === -1 && idx > 0) [arr[idx], arr[idx-1]] = [arr[idx-1], arr[idx]];
+        else if(dir === 1 && idx < arr.length - 1) [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]];
+        renderAll();
+    }
+
+    function delItem(type, idx) { data[type].splice(idx, 1); renderAll(); }
+
+    function renderAll() {
+        // 카드 태그 업데이트
+        document.getElementById('card-tags').innerHTML = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
+        
+        // 카드 관계 업데이트
+        const outRel = document.getElementById('out-rel');
+        outRel.innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
+        
+        // 관계 행 가시성 처리
+        const relRow = document.getElementById('tr-rel');
+        if(data.relations.length > 0) relRow.classList.add('visible');
+        else relRow.classList.remove('visible');
+
+        // 관리 리스트 렌더링
+        ['tags', 'relations'].forEach(type => {
+            const container = document.getElementById(`manage-${type.toLowerCase()}`);
+            container.innerHTML = data[type].map((item, i) => `
+                <div style="display:flex; justify-content:space-between; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
+                    <span>${type === 'relations' ? item.name : item}</span>
+                    <div>
+                        <button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button>
+                        <button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button>
+                        <button class="btn-small" onclick="delItem('${type}', ${i})">x</button>
+                    </div>
+                </div>
+            `).join('');
+        });
+        sync();
+    }
+
+    const imageInput = document.getElementById('image-upload');
+    imageInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = document.getElementById('crop-image');
+                img.src = ev.target.result;
+                document.getElementById('crop-modal').style.display = 'block';
+                if(cropper) cropper.destroy();
+                cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1 });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    function applyCrop() {
+        const canvas = cropper.getCroppedCanvas({ width: 600, height: 600 });
+        const cardImg = document.getElementById('card-photo');
+        cardImg.src = canvas.toDataURL();
+        cardImg.style.display = 'block';
+        document.getElementById('crop-modal').style.display = 'none';
+    }
+
+    async function downloadCard() {
+        const charName = document.getElementById('in-name').value || 'character';
+        const card = document.getElementById('profile-card');
+        const originalMaxHeight = card.style.maxHeight;
+        const originalOverflow = card.style.overflowY;
+        card.style.maxHeight = 'none';
+        card.style.overflowY = 'visible';
+
+        const canvas = await html2canvas(card, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+        
+        card.style.maxHeight = originalMaxHeight;
+        card.style.overflowY = originalOverflow;
+
+        const link = document.createElement('a');
+        link.download = `${charName}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+</script>
+</body>
+</html>
