@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>모험가 카드 생성기 Pro (Compact)</title>
+    <title>모험가 카드 생성기</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -35,16 +35,18 @@
         .like-tag { background: #e7f5ff; color: #1971c2; border: 1px solid #a5d8ff; }
         .dislike-tag { background: #fff5f5; color: #e03131; border: 1px solid #ffc9c9; }
 
-        .profile-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        .profile-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; table-layout: fixed; }
         .profile-table tr { display: none; border-bottom: 1px solid #f8f9fa; }
         .profile-table tr.visible { display: table-row; }
-        .profile-table th { width: 90px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 8px 0; }
-        .profile-table td { padding: 8px 0; white-space: pre-wrap; color: #343a40; vertical-align: top; }
+        .profile-table th { width: 95px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 10px 0; }
+        .profile-table td { padding: 10px 0; white-space: pre-wrap; color: #343a40; vertical-align: top; word-break: break-all; }
         
-        .color-display-item { margin-bottom: 4px; }
-        .color-display-item:last-child { margin-bottom: 0; }
-        .color-hex { display: block; font-weight: bold; line-height: 1.2; }
-        .color-desc { display: block; font-size: 0.8rem; color: #666; line-height: 1.2; }
+        /* 지향색 공백 문제 해결용 스타일 */
+        .color-list-container { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+        .color-display-item { display: flex; align-items: center; gap: 8px; line-height: 1.2; }
+        .color-swatch { width: 14px; height: 14px; border-radius: 2px; border: 1px solid #ddd; flex-shrink: 0; }
+        .color-hex { font-size: 0.85rem; font-weight: 700; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
+        .color-desc { font-size: 0.75rem; color: #888; margin-left: 2px; }
 
         .save-btn { margin-top: 20px; width: 420px; padding: 16px; background: var(--point); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; }
         #crop-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; z-index: 1000; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.2); }
@@ -77,9 +79,7 @@
             <div id="manage-colors"></div>
         </div>
         <div class="input-item"><label>외모 서술</label><textarea id="in-app" rows="2" oninput="sync()"></textarea></div>
-        
         <div class="input-item"><label>성격 서술</label><textarea id="in-pers" rows="3" oninput="sync()"></textarea></div>
-
         <div class="input-item">
             <label>좋아하는 것</label>
             <div style="display:flex; gap:5px;"><input type="text" id="in-like"><button class="btn-small" onclick="addItem('likes', 'in-like')">추가</button></div>
@@ -90,7 +90,6 @@
             <div style="display:flex; gap:5px;"><input type="text" id="in-dislike"><button class="btn-small" onclick="addItem('dislikes', 'in-dislike')">추가</button></div>
             <div id="manage-dislikes"></div>
         </div>
-
         <div class="input-item"><label>특징</label><textarea id="in-feat" rows="2" oninput="sync()"></textarea></div>
         <div class="input-item">
             <label>관계</label>
@@ -108,12 +107,9 @@
                 <tr id="tr-age"><th>나이</th><td id="out-age"></td></tr>
                 <tr id="tr-color"><th>지향색</th><td id="out-color"></td></tr>
                 <tr id="tr-app"><th>외모</th><td id="out-app"></td></tr>
-                
                 <tr id="tr-pers"><th>성격</th><td id="out-pers"></td></tr>
-                
                 <tr id="tr-likes"><th>좋아하는 것</th><td id="out-likes"></td></tr>
                 <tr id="tr-dislikes"><th>싫어하는 것</th><td id="out-dislikes"></td></tr>
-                
                 <tr id="tr-feat"><th>특징</th><td id="out-feat"></td></tr>
                 <tr id="tr-rel"><th>관계</th><td id="out-rel"></td></tr>
             </table>
@@ -172,24 +168,60 @@
     function editItem(type, idx) {
         const item = data[type][idx];
         if(type === 'tags') document.getElementById('in-tag').value = item;
-        else if(type === 'colors') { document.getElementById('in-color-h').value = item.hex; document.getElementById('in-color-p').value = item.hex; document.getElementById('in-color-desc').value = item.desc; }
+        else if(type === 'colors') { 
+            document.getElementById('in-color-h').value = item.hex; 
+            document.getElementById('in-color-p').value = item.hex; 
+            document.getElementById('in-color-desc').value = item.desc; 
+        }
         else if(type === 'likes') document.getElementById('in-like').value = item;
         else if(type === 'dislikes') document.getElementById('in-dislike').value = item;
-        else if(type === 'relations') { document.getElementById('in-rel-n').value = item.name; document.getElementById('in-rel-d').value = item.desc; }
+        else if(type === 'relations') { 
+            document.getElementById('in-rel-n').value = item.name; 
+            document.getElementById('in-rel-d').value = item.desc; 
+        }
         delItem(type, idx);
     }
+
     function renderAll() {
         document.getElementById('card-tags').innerHTML = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
-        document.getElementById('out-color').innerHTML = data.colors.map(c => `<div class="color-display-item"><span class="color-hex" style="color:${c.hex}">${c.hex}</span><span class="color-desc">${c.desc}</span></div>`).join('');
+        
+        // 지향색 렌더링 방식 변경 (공백 최적화)
+        let colorHtml = '<div class="color-list-container">';
+        data.colors.forEach(c => {
+            colorHtml += `
+                <div class="color-display-item">
+                    <div class="color-swatch" style="background-color:${c.hex}"></div>
+                    <span class="color-hex" style="color:${c.hex}">${c.hex}</span>
+                    ${c.desc ? `<span class="color-desc">${c.desc}</span>` : ''}
+                </div>
+            `;
+        });
+        colorHtml += '</div>';
+        document.getElementById('out-color').innerHTML = colorHtml;
+
         document.getElementById('out-likes').innerHTML = data.likes.map(l => `<span class="keyword-tag like-tag">${l}</span>`).join('');
         document.getElementById('out-dislikes').innerHTML = data.dislikes.map(d => `<span class="keyword-tag dislike-tag">${d}</span>`).join('');
         document.getElementById('out-rel').innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
+        
         ['tags', 'colors', 'likes', 'dislikes', 'relations'].forEach(type => {
             const container = document.getElementById(`manage-${type.toLowerCase()}`);
-            container.innerHTML = data[type].map((item, i) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;"><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">${type === 'relations' ? item.name : (type === 'colors' ? item.hex : item)}</span><div style="display:flex; gap:2px;"><button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button><button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button><button class="btn-small" onclick="editItem('${type}', ${i})">수정</button><button class="btn-small" onclick="delItem('${type}', ${i})">x</button></div></div>`).join('');
+            container.innerHTML = data[type].map((item, i) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">
+                        ${type === 'relations' ? item.name : (type === 'colors' ? item.hex : item)}
+                    </span>
+                    <div style="display:flex; gap:2px;">
+                        <button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button>
+                        <button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button>
+                        <button class="btn-small" onclick="editItem('${type}', ${i})">수정</button>
+                        <button class="btn-small" onclick="delItem('${type}', ${i})">x</button>
+                    </div>
+                </div>
+            `).join('');
         });
         sync();
     }
+
     const imageInput = document.getElementById('image-upload');
     imageInput.onchange = (e) => {
         const file = e.target.files[0];
