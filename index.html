@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>모험가 카드 생성기</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
@@ -11,23 +11,48 @@
 
     <style>
         :root { --main-bg: #f8f9fa; --card-bg: #ffffff; --border: #e9ecef; --point: #333; }
-        body { font-family: 'Pretendard', sans-serif; background: var(--main-bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { display: flex; gap: 40px; max-width: 1200px; width: 100%; height: 95vh; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--main-bg); margin: 0; padding: 10px; display: flex; justify-content: center; }
         
-        .editor { flex: 1; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow-y: auto; }
-        .input-item { margin-bottom: 20px; border-bottom: 1px solid #f8f9fa; padding-bottom: 15px; }
+        /* 메인 컨테이너: 모바일에서 세로 정렬 */
+        .container { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            max-width: 1200px; 
+            width: 100%; 
+        }
+        
+        /* PC 환경 (화면 폭 900px 이상)에서만 가로 배치 */
+        @media (min-width: 900px) {
+            body { padding: 20px; }
+            .container { flex-direction: row; height: 95vh; gap: 40px; }
+            .editor { flex: 1; }
+            .preview { flex: 1; position: sticky; top: 0; }
+        }
+
+        .editor { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow-y: auto; }
+        .input-item { margin-bottom: 15px; border-bottom: 1px solid #f8f9fa; padding-bottom: 12px; }
         label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; color: #444; }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
-        .btn-small { padding: 5px 10px; font-size: 0.75rem; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px; }
+        
+        /* 입력창 터치 편의성 향상 */
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 16px; /* 모바일 줌 방지 */ }
+        .btn-small { padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 6px; }
 
-        .color-picker-box { width: 50px; height: 40px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; appearance: none; -webkit-appearance: none; }
-        .color-picker-box::-webkit-color-swatch-wrapper { padding: 0; }
-        .color-picker-box::-webkit-color-swatch { border: none; border-radius: 4px; }
+        .color-picker-box { width: 60px; height: 45px; padding: 0; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
 
-        .preview { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        #profile-card { width: 420px; max-height: 80vh; background: var(--card-bg); padding: 35px; border: 1px solid #eee; box-sizing: border-box; overflow-y: auto; }
+        .preview { display: flex; flex-direction: column; align-items: center; }
+        
+        /* 카드 크기: 모바일 화면에 맞춰 유동적으로 조절 */
+        #profile-card { 
+            width: 100%; 
+            max-width: 420px; 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border: 1px solid #eee; 
+            box-sizing: border-box; 
+        }
 
-        #card-photo { width: 100%; aspect-ratio: 1/1; background: #f8f9fa; margin-bottom: 25px; object-fit: cover; display: none; }
+        #card-photo { width: 100%; aspect-ratio: 1/1; background: #f8f9fa; margin-bottom: 20px; object-fit: cover; display: none; }
         .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
         .tag { background: #f1f3f5; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: #495057; }
 
@@ -38,26 +63,28 @@
         .profile-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; table-layout: fixed; }
         .profile-table tr { display: none; border-bottom: 1px solid #f8f9fa; }
         .profile-table tr.visible { display: table-row; }
-        .profile-table th { width: 95px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 10px 0; }
-        .profile-table td { padding: 10px 0; white-space: pre-wrap; color: #343a40; vertical-align: top; word-break: break-all; }
+        .profile-table th { width: 85px; text-align: left; vertical-align: top; color: #adb5bd; font-weight: 500; padding: 8px 0; }
+        .profile-table td { padding: 8px 0; white-space: pre-wrap; color: #343a40; vertical-align: top; word-break: break-all; }
         
-        /* 지향색 공백 문제 해결용 스타일 */
-        .color-list-container { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+        .color-list-container { display: flex; flex-direction: column; gap: 4px; }
         .color-display-item { display: flex; align-items: center; gap: 8px; line-height: 1.2; }
         .color-swatch { width: 14px; height: 14px; border-radius: 2px; border: 1px solid #ddd; flex-shrink: 0; }
-        .color-hex { font-size: 0.85rem; font-weight: 700; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
-        .color-desc { font-size: 0.75rem; color: #888; margin-left: 2px; }
+        .color-hex { font-size: 0.85rem; font-weight: 700; text-shadow: 1px 1px 1px rgba(0,0,0,0.05); }
+        .color-desc { font-size: 0.75rem; color: #888; }
 
-        .save-btn { margin-top: 20px; width: 420px; padding: 16px; background: var(--point); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; }
-        #crop-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; z-index: 1000; border-radius: 12px; box-shadow: 0 0 30px rgba(0,0,0,0.2); }
-        .crop-container { width: 400px; height: 400px; margin-bottom: 15px; }
+        .save-btn { margin-top: 15px; width: 100%; max-width: 420px; padding: 16px; background: var(--point); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; }
+        
+        /* 모달창 크기 모바일 대응 */
+        #crop-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 15px; z-index: 1000; border-radius: 12px; width: 90%; max-width: 400px; }
+        .crop-container { width: 100%; aspect-ratio: 1/1; margin-bottom: 15px; }
+        #crop-modal button { width: 100%; padding: 12px; background: var(--point); color: white; border: none; border-radius: 8px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="editor">
-        <h2>모험가 설정</h2>
+        <h2 style="margin-top:0;">모험가 설정</h2>
         <div class="input-item"><label>사진 업로드</label><input type="file" id="image-upload" accept="image/*"></div>
         <div class="input-item"><label>이름</label><input type="text" id="in-name" oninput="sync()"></div>
         <div class="input-item"><label>나이</label><input type="text" id="in-age" oninput="sync()"></div>
@@ -68,7 +95,7 @@
         </div>
         <div class="input-item">
             <label>지향색</label>
-            <div style="display:flex; gap:10px; margin-bottom:5px;">
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
                 <input type="color" id="in-color-p" class="color-picker-box" oninput="updatePicker(this.value)">
                 <input type="text" id="in-color-h" placeholder="#000000" oninput="updateHex(this.value)">
             </div>
@@ -118,9 +145,10 @@
     </div>
 </div>
 
-<div id="crop-modal"><div class="crop-container"><img id="crop-image"></div><button onclick="applyCrop()">완료</button></div>
+<div id="crop-modal"><div class="crop-container"><img id="crop-image"></div><button onclick="applyCrop()">자르기 완료</button></div>
 
 <script>
+    /* 자바스크립트 로직은 이전과 동일하므로 생략 없이 전체 포함 */
     let cropper;
     let data = { tags: [], colors: [], likes: [], dislikes: [], relations: [] };
 
@@ -184,21 +212,12 @@
 
     function renderAll() {
         document.getElementById('card-tags').innerHTML = data.tags.map(t => `<span class="tag">#${t}</span>`).join('');
-        
-        // 지향색 렌더링 방식 변경 (공백 최적화)
         let colorHtml = '<div class="color-list-container">';
         data.colors.forEach(c => {
-            colorHtml += `
-                <div class="color-display-item">
-                    <div class="color-swatch" style="background-color:${c.hex}"></div>
-                    <span class="color-hex" style="color:${c.hex}">${c.hex}</span>
-                    ${c.desc ? `<span class="color-desc">${c.desc}</span>` : ''}
-                </div>
-            `;
+            colorHtml += `<div class="color-display-item"><div class="color-swatch" style="background-color:${c.hex}"></div><span class="color-hex" style="color:${c.hex}">${c.hex}</span>${c.desc ? `<span class="color-desc">${c.desc}</span>` : ''}</div>`;
         });
         colorHtml += '</div>';
         document.getElementById('out-color').innerHTML = colorHtml;
-
         document.getElementById('out-likes').innerHTML = data.likes.map(l => `<span class="keyword-tag like-tag">${l}</span>`).join('');
         document.getElementById('out-dislikes').innerHTML = data.dislikes.map(d => `<span class="keyword-tag dislike-tag">${d}</span>`).join('');
         document.getElementById('out-rel').innerText = data.relations.map(r => `• ${r.name}: ${r.desc}`).join('\n');
@@ -206,18 +225,10 @@
         ['tags', 'colors', 'likes', 'dislikes', 'relations'].forEach(type => {
             const container = document.getElementById(`manage-${type.toLowerCase()}`);
             container.innerHTML = data[type].map((item, i) => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:5px; background:#f1f3f5; margin-top:3px; border-radius:4px; font-size:0.8rem;">
-                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;">
-                        ${type === 'relations' ? item.name : (type === 'colors' ? item.hex : item)}
-                    </span>
-                    <div style="display:flex; gap:2px;">
-                        <button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button>
-                        <button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button>
-                        <button class="btn-small" onclick="editItem('${type}', ${i})">수정</button>
-                        <button class="btn-small" onclick="delItem('${type}', ${i})">x</button>
-                    </div>
-                </div>
-            `).join('');
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:#f1f3f5; margin-top:5px; border-radius:6px; font-size:0.8rem;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;">${type === 'relations' ? item.name : (type === 'colors' ? item.hex : item)}</span>
+                    <div style="display:flex; gap:3px;"><button class="btn-small" onclick="moveItem('${type}', ${i}, -1)">↑</button><button class="btn-small" onclick="moveItem('${type}', ${i}, 1)">↓</button><button class="btn-small" onclick="editItem('${type}', ${i})">수정</button><button class="btn-small" onclick="delItem('${type}', ${i})">x</button></div>
+                </div>`).join('');
         });
         sync();
     }
